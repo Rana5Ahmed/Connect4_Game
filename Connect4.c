@@ -281,3 +281,127 @@ int main(void){
 	}
 }
 
+void startingScreen()
+{
+	int w; 
+	Nokia5110_SetCursor(0,0);
+	Nokia5110_ClearBuffer();
+	Nokia5110_SetCursor(2,2);
+	Nokia5110_OutString("Connect4");
+	Nokia5110_SetCursor(0,5);
+	Nokia5110_OutString("Loading ...");	
+	Delay100ms(40);
+	for(w=7 ; w>0 ; w--)
+	{
+		Nokia5110_SetCursor(0,w);
+		Nokia5110_OutString("           ");
+		Delay100ms(5);
+	}
+
+}
+//////////////////////////////////////////////////////////////////////////////////////
+int selectMode(){ // here is selecting if the mode is P1 VS AI or PI vs P2 
+	int k = 0 ; 
+	Nokia5110_SetCursor(0,0);
+	Nokia5110_OutString("choose");
+	Nokia5110_SetCursor(7,0);
+	Nokia5110_OutString("mode");
+	Nokia5110_SetCursor(3,2);
+	Nokia5110_OutString("P1 VS AI");
+	Nokia5110_SetCursor(3,4);
+	Nokia5110_OutString("P1 VS P2");
+	Nokia5110_SetCursor(0,k+2);	
+	Nokia5110_OutString(">>");
+	
+	while(1)
+	{
+		SW1 = GPIO_PORTF_DATA_R&0x10;     // read PF4 into SW1
+		if(!SW1)
+		 {
+				while (!(GPIO_PORTF_DATA_R&0x10)){
+			 Delay100ms(1);
+				}
+				Nokia5110_SetCursor(0,k+2);	
+				Nokia5110_OutString("  ");				
+				k+=2;
+				if(k>2)
+					k=0;
+				Nokia5110_SetCursor(0,k+2);	
+				Nokia5110_OutString(">>");
+		 }
+	SW2 = GPIO_PORTF_DATA_R&0x01;     // read PF4 into SW2
+		 Delay100ms(1);
+		 if(!SW2)
+		 {
+			 while (!(GPIO_PORTF_DATA_R&0x01))
+			 {
+				 Delay100ms(1);
+				 seed++; 
+			 }
+			 Nokia5110_SetCursor(3,k+2);
+			 Nokia5110_OutString("        ");	
+			Delay100ms(5);			 
+			 Nokia5110_SetCursor(3,k+2);
+			 Nokia5110_OutString(k?"P1 VS P2":"P1 VS AI");	
+			Delay100ms(5);			 
+			 Nokia5110_SetCursor(3,k+2);
+			 Nokia5110_OutString("        ");		
+			 Delay100ms(5);
+			 Nokia5110_SetCursor(3,k+2);
+			 Nokia5110_OutString(k?"P1 VS P2":"P1 VS AI");		
+			 
+				break ;
+		 }
+		 seed++;
+	 }
+	return  k ; 
+}
+
+void printBoard(char *board){
+   int row, col;
+	Nokia5110_ClearBuffer();
+   for(row = 0; row < BOARD_ROWS; row++){
+      for(col = 0; col < BOARD_COLS; col++){
+				Nokia5110_SetCursorChar( col ,row,board[BOARD_COLS*row+col]);
+      }
+   }
+}
+
+
+	// take turn for the Kit player and PIECES can be X or O
+int takeTurn(char *board, int player, const char *PIECES){
+   int  col = 0;
+		int g ;
+   while(1){
+
+		SW1 = GPIO_PORTF_DATA_R&0x10;     // read PF4 into SW1
+		 Nokia5110_SetCursorChar( col ,0,PIECES[player]);
+		 PortF_SetPin(1);
+		 if(!SW1)
+		 {
+				while (!(GPIO_PORTF_DATA_R&0x10)){
+			 Delay100ms(1);
+				}
+				col++;
+			 if(col>6)
+				 col = 0 ;
+			Nokia5110_SetCursorChar( col ,0,PIECES[player]);
+			  g = col==0?6:col-1;
+			 Nokia5110_SetCursorChar( g,0,board[g]);
+		 }
+		 SW2 = GPIO_PORTF_DATA_R&0x01;     // read PF4 into SW2
+		 Delay100ms(1);
+		 if(!SW2)
+		 {
+			 while (!(GPIO_PORTF_DATA_R&0x01))
+			 {
+				 Delay100ms(1);
+			 }
+				PortF_ClearPin(1);
+				break ;
+		 }
+   }
+	 UARTB_OutChar(col+1+'0');
+	 last = col ; 
+   return changeBoard(board , player , PIECES , col );
+}
