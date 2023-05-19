@@ -498,3 +498,89 @@ int horizontalCheck(char *board){
     return 0;
 
 }
+
+int verticalCheck(char *board){
+    int row, col, idx;
+    const int HEIGHT = 7;
+
+    for(row = 0; row < BOARD_ROWS - 3; row++){
+       for(col = 0; col < BOARD_COLS; col++){
+          idx = BOARD_COLS * row + col;
+          if(checkFour(board, idx, idx + HEIGHT, idx + HEIGHT * 2, idx + HEIGHT * 3)){
+              return 1;
+          }
+       }
+    }
+    return 0;
+
+}
+int diagonalCheck(char *board){
+   int row, col, idx, count = 0;
+   const int DIAG_RGT = 6, DIAG_LFT = 8;
+
+   for(row = 0; row < BOARD_ROWS - 3; row++){
+      for(col = 0; col < BOARD_COLS; col++){
+         idx = BOARD_COLS * row + col;
+         if((count <= 3 && checkFour(board, idx, idx + DIAG_LFT, idx + DIAG_LFT * 2, idx + DIAG_LFT * 3)) || (count >= 3 && checkFour(board, idx, idx + DIAG_RGT, idx + DIAG_RGT * 2, idx + DIAG_RGT * 3))){
+            return 1;
+         }
+         count++;
+      }
+      count = 0;
+   }
+   return 0;
+
+}
+
+void Delay100ms(unsigned long count){unsigned long volatile time;
+  while(count){
+    time = 72724;  // 0.1sec at 80 MHz
+    while(time){
+	  	time--;
+    }
+    count--;
+  }
+}
+
+
+////////////////UART0 Driver/////////////////
+void UARTB_init(void)
+{
+ SYSCTL_RCGC1_R |= SYSCTL_RCGC1_UART0; // activate UART0
+  SYSCTL_RCGC2_R |= SYSCTL_RCGC2_GPIOA; // activate port A
+  UART0_CTL_R &= ~UART_CTL_UARTEN;      // disable UART
+  UART0_IBRD_R = 104;                    // IBRD = int(80,000,000 / (16 * 115200)) = int(43.402778)
+  UART0_FBRD_R = 11;                    // FBRD = round(0.402778 * 64) = 26
+                                        // 8 bit word length (no parity bits, one stop bit, FIFOs)
+  UART0_LCRH_R = (UART_LCRH_WLEN_8|UART_LCRH_FEN);
+  UART0_CTL_R |= UART_CTL_UARTEN;       // enable UART
+  GPIO_PORTA_AFSEL_R |= 0x03;           // enable alt funct on PA1,PA0
+  GPIO_PORTA_DEN_R |= 0x03;             // enable digital I/O on PA1,PA0
+                                        // configure PA1,PA0 as UART0
+  GPIO_PORTA_PCTL_R = (GPIO_PORTA_PCTL_R&0xFFFFFF00)+0x00000011;
+  GPIO_PORTA_AMSEL_R &= ~0x03;          // disable analog functionality on PA1,PA0
+
+}
+ char UARTB_InChar(void){
+
+  while((UART0_FR_R&UART_FR_RXFE) != 0);
+  return((unsigned char)(UART0_DR_R&0xFF));
+}
+
+void UARTB_OutChar( char data){
+
+  while((UART0_FR_R&UART_FR_TXFF) != 0);
+  UART0_DR_R = data;
+}
+
+void UARTB_outString(char* buffer)
+{
+	while(*buffer != 0 )
+	{
+		UARTB_OutChar(*buffer) ;
+		buffer++;
+
+	}
+
+}
+//////////////////////////////////////////////////////////
