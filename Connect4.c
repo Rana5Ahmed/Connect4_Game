@@ -121,3 +121,163 @@ void Delay100ms(unsigned long count); // time delay in 0.1 seconds
 #define GPIO_PORTF_PCTL_R       (*((volatile unsigned long *)0x4002552C))
 #define SYSCTL_RCGC2_R          (*((volatile unsigned long *)0x400FE108))
 #define SYSCTL_RCGC2_GPIOF      0x00000020  // port F Clock Gating Control
+
+unsigned long SW1,SW2;  // input from PF4,PF0
+unsigned long Out;      // outputs to PF3,PF2,PF1 (multicolor LED)
+void PortF_Init(void);
+
+void UARTB_init(void);
+char UARTB_InChar(void) ;
+void UARTB_OutChar( char data);
+void UARTB_outString(char* buffer) ;
+int selectMode(void); 
+void startingScreen(void);
+
+
+int r = 0 , rr = 0 , uturn = 0 , f = 0 , i = 0 , j = 0 ;
+int turn=0, done = 0;
+const char *PIECES = "XO";
+char board1[(BOARD_ROWS * BOARD_COLS)+1];
+unsigned int seed = 25 ; 
+int last = 0 , lastOne = -1 ;
+
+
+void Set_LED1(void)
+{
+    GPIO_PORTF_DATA_R |= 0x40;   // turn on LED connected to pin 6
+		GPIO_PORTF_DATA_R &= ~0x80;  // turn off LED connected to pin 7
+}
+
+void Clear_LED1(void)
+{
+    GPIO_PORTF_DATA_R &= ~0x40;  // turn off LED connected to pin 6
+}
+
+void Set_LED2(void)
+{
+    GPIO_PORTF_DATA_R |= 0x80;   // turn on LED connected to pin 7
+		GPIO_PORTF_DATA_R &= ~0x40;  // turn off LED connected to pin 6
+}
+
+void Clear_LED2(void)
+{
+    GPIO_PORTF_DATA_R &= ~0x80;  // turn off LED connected to pin 7
+}
+
+
+int main(void){
+  //TExaS_Init(SSI0_Real_Nokia5110_Scope);  // set system clock to 80 MHz
+  // initialization goes here
+	int mode ; 
+	PortF_Init();        // Call initialization of port PF4, PF3, PF2, PF1, PF0
+	for(i = 0 ; i < BOARD_COLS*BOARD_ROWS +1;i++)
+	{
+		board1[i] = ' ';
+		//input[i]=' ';
+	}
+	
+  Nokia5110_Init();
+	UARTB_init();
+  Nokia5110_Clear();
+	startingScreen();
+	mode = selectMode(); 
+	srand(seed);
+	Nokia5110_Clear();
+	if(mode)
+	{
+	r = (rand()%9)+'0';
+	UARTB_OutChar(r);
+	rr = UARTB_InChar();
+	
+	if(r<rr)
+	{
+		uturn = 1 ;
+	}
+
+	printBoard(board1);
+	for(turn = 0; turn < (BOARD_ROWS * BOARD_COLS) && !done; turn++){ // 42
+      
+		if(uturn)
+		{
+			do{
+         printBoard(board1);
+      }
+			while(!takeTurnRemote(board1, (turn) % 2, PIECES));
+			done = checkWin(board1);
+			turn++;
+			if(done) break;
+			do{
+         printBoard(board1);
+      }
+			while(!takeTurn(board1, (turn) % 2, PIECES));
+			done = checkWin(board1);
+		}
+		else
+		{
+      do{
+         printBoard(board1);
+      }
+			while(!takeTurn(board1, (turn) % 2, PIECES));
+			done = checkWin(board1);
+			turn++;
+			if(done) break;
+			do{
+         printBoard(board1);
+      }
+			while(!takeTurnRemote(board1, (turn) % 2, PIECES));
+			done = checkWin(board1);
+		}
+   }
+	printBoard(board1);
+	 if(turn == BOARD_ROWS * BOARD_COLS && !done){
+     Nokia5110_OutString("It's a tie!");
+   } else {
+     turn--;
+		 Nokia5110_Clear();
+		 Nokia5110_SetCursor(1,1);
+		Nokia5110_OutString("Player");
+		Nokia5110_SetCursor(8,1);
+		Nokia5110_OutString(turn%2==0?"X":"O");
+		 Nokia5110_SetCursor(3,2);
+		 Nokia5110_OutString("wins!");
+		 Nokia5110_SetCursor(1,4);
+		 Nokia5110_OutString("GAME OVER");
+   }
+	}
+	else
+	{
+    
+	printBoard(board1);
+	for(turn = 0; turn < (BOARD_ROWS * BOARD_COLS) && !done; turn++){ // 42
+			do{
+         printBoard(board1);
+      }
+			while(!takeTurnAI(board1, (turn) % 2, PIECES , turn));
+			done = checkWin(board1);
+			turn++;
+			if(done) break;
+			do{
+         printBoard(board1);
+      }
+			while(!takeTurn(board1, (turn) % 2, PIECES));
+			done = checkWin(board1);
+		
+   }
+	printBoard(board1);
+	 if(turn == BOARD_ROWS * BOARD_COLS && !done){
+     Nokia5110_OutString("It's a tie!");
+   } else {
+     turn--;
+		 Nokia5110_Clear();
+		 Nokia5110_SetCursor(1,1);
+		Nokia5110_OutString("Player");
+		Nokia5110_SetCursor(8,1);
+		Nokia5110_OutString(turn%2==0?"X":"O");
+		 Nokia5110_SetCursor(3,2);
+		 Nokia5110_OutString("wins!");
+		 Nokia5110_SetCursor(1,4);
+		 Nokia5110_OutString("GAME OVER");
+   }
+	}
+}
+
