@@ -405,3 +405,96 @@ int takeTurn(char *board, int player, const char *PIECES){
 	 last = col ; 
    return changeBoard(board , player , PIECES , col );
 }
+//For AI 
+int takeTurnAI(char *board, int player, const char*PIECES , int i )
+{
+	int col ; //= rand()%7;
+	if(i==0 || hasEmptyCol(board,3) )
+	{
+		col = 3 ; 
+	}
+	else{
+		if(hasEmptyCol(board,lastOne))
+		{
+			col = lastOne; 
+		}
+		else if(hasEmptyCol(board,last))
+		{
+			col = last; 
+		}
+		else {
+			if(last >0 && last < 6)
+			{	
+				if(hasEmptyCol(board,last-1))
+					col = last-1 ; 
+				else if(hasEmptyCol(board,last+1))
+					col = last+1; 
+				else if(hasEmptyCol(board,lastOne)&&lastOne>-1)
+					col = lastOne; 
+				
+			}
+		}
+	}
+	
+	lastOne = col ; 
+	PortF_SetPin(2);
+	Delay100ms(20);
+	PortF_ClearPin(2);
+	return changeBoard(board , player , PIECES , col );
+}
+//For UART move
+int takeTurnRemote(char *board, int player, const char *PIECES){
+  int col = 0;
+	PortF_SetPin(2);
+	col = UARTB_InChar();
+	PortF_ClearPin(2);
+	col=col-1-'0' ;
+	if(col>6)
+	{
+		col = 0 ;
+	}
+   return changeBoard(board , player , PIECES , col );
+}
+int changeBoard(char *board,int player , const char *PIECES , int col  )
+{
+	int row ;
+   for(row = BOARD_ROWS - 1; row >= 0; row--){
+      if(board[BOARD_COLS * row + col] == ' '){
+         board[BOARD_COLS * row + col] = PIECES[player];
+         return 1;
+      }
+   }
+	 return 0 ;
+}
+int hasEmptyCol(char *board, int col  )
+{
+	int row ;
+   for(row = BOARD_ROWS - 1; row >= 0; row--){
+      if(board[BOARD_COLS * row + col] == ' '){
+         return 1;
+      }
+   }
+	 return 0 ;
+}
+int checkWin(char *board){
+    return (horizontalCheck(board) || verticalCheck(board) || diagonalCheck(board));
+}
+int checkFour(char *board, int a, int b, int c, int d){
+    return (board[a] == board[b] && board[b] == board[c] && board[c] == board[d] && board[a] != ' ');
+}
+
+int horizontalCheck(char *board){
+    int row, col, idx;
+    const int WIDTH = 1;
+
+    for(row = 0; row < BOARD_ROWS; row++){
+       for(col = 0; col < BOARD_COLS - 3; col++){
+          idx = BOARD_COLS * row + col;
+          if(checkFour(board, idx, idx + WIDTH, idx + WIDTH * 2, idx + WIDTH * 3)){
+             return 1;
+          }
+       }
+    }
+    return 0;
+
+}
